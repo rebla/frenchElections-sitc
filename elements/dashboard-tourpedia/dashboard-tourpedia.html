@@ -1,0 +1,329 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/material-search/material-search.html">
+<link rel="import" href="../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../../bower_components/google-chart-elasticsearch/google-chart.html">
+<link rel="import" href="../../bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="../../bower_components/reviews-table/reviews-table.html">
+<link rel="import" href="../../bower_components/number-chart/number-chart.html">
+<link rel="import" href="../../bower_components/leaflet-maps/leaflet-map.html">
+<link rel="import" href="../../bower_components/spain-chart/spain-chart1.html">
+
+<dom-module id="dashboard-tourpedia">
+
+  <style is="custom-style">
+    @import url("../../styles/app-theme.html");
+  </style>
+  <link rel="import" type="css" href="dashboard-tourpedia.css">
+
+  <template>
+    <iron-ajax auto
+        url="queries.json"
+        handle-as="json"
+        last-response="{{queries}}"></iron-ajax>
+    <iron-ajax auto
+        url="/endpoint.json"
+        handle-as="json"
+        last-response="{{endpoint}}"></iron-ajax>
+    <template is="dom-repeat" items="{{ids}}" as="id"> 
+      <iron-ajax auto 
+        url="{{getName(id)}}"
+        handle-as="json"
+        on-response="addPlace"></iron-ajax>
+    </template>
+        <material-search search-value="{{query}}"></material-search>
+        <br>
+        <div style="width: 100%; display: inline-block">
+          <div style="width: 31%; margin-right: 2.6%; float: left">
+            <number-chart 
+              icon="info"
+              stylebg="bg-red"
+              data="{{data}}">
+            </number-chart>
+          </div>
+          <div style="width: 31%; margin-right: 2.6%; float: left">
+            <number-chart 
+              data="{{data}}"
+              object="pen"
+              aggkey="entity"
+              title="Marine Le Pen"
+              icon="maps:person-pin"
+              stylebg="bg-aqua">
+            </number-chart>
+          </div>
+          <div style="width: 31%; margin-right: 0%; float: left">
+            <number-chart 
+              data="{{data}}"
+              object="macron"
+              aggkey="entity"
+              title="Emmanuel Macron"
+              icon="maps:person-pin"
+              stylebg="bg-yellow">
+            </number-chart>
+          </div>
+        </div>
+        <div style="width: 100%; display: inline-block">
+          <div class="chart_container" style="left: 0; float: left">
+            <google-chart
+              field="polarity"
+              datos="{{data}}"             
+              id='pie-chart3'
+              extra-id='pie-chart3'
+              type='pie'
+              filters="{{filters}}"
+              icon='room'
+              param="{{param}}"
+              options='{"title": "Different types of Polarity"}'
+              cols='[{"label": "Sentiment", "type": "string"},{"label": "Count", "type": "number"}]'
+              rows='[ ["Jan", 31],["Feb", 28],["Mar", 31],["Apr", 30],["May", 31],["Jun", 30] ]'>
+            </google-chart>
+          </div>
+          <div class="chart_container" style="right: 0; float: right">
+            <google-chart
+              datos="{{data}}"
+              field="user_location"
+              id='pie-chart4'
+              extra-id='pie-chart4'
+              type='pie'
+              filters="{{filters}}"
+              icon='maps:my-location'
+              param='{{param}}'
+              options='{"title": "Tweets from different cities"}'
+              cols='[{"label": "Place", "type": "string"},{"label": "Count", "type": "number"}]'
+              rows='[ ["Jan", 31],["Feb", 28],["Mar", 31],["Apr", 30],["May", 31],["Jun", 30] ]'>
+            </google-chart>
+          </div>
+        </div>
+        <div style="width: 100%; display: inline-block">
+          <spain-chart
+            datos="{{data}}">
+          </spain-chart>
+        </div>
+  </template>
+
+  <script>
+  var filtered = false;
+    Polymer({
+      is: 'dashboard-tourpedia',
+      properties: {
+        selected: {
+          type: Number,
+          value: 0
+        }, 
+
+        ids:{
+          type: Array
+          /*value: ["481","482","32512","32420","91963","96677","160677","131425","322429","322612"]*/
+           
+        },
+
+        data:{
+          type: Object
+        },
+
+        query: {
+          type: String,
+          observer: '_queryChanged'
+        },
+
+        fields: {
+          type: Array,
+          value: function() { return []; }
+        },
+
+        places: {
+          type: Array,
+          notify: true,
+          value: []
+        },
+
+        filters: {
+          type: Array,
+          notify: true,
+          value: function() { return []; }
+        }
+      },
+    
+      observers: [
+      '_filtersChange(filters.*)'
+      ],
+
+      ready: function(){
+        this.queryDefault();
+      },
+      
+      addPlace: function(event) {
+        this.set('places', this.places.concat(event.detail.response))
+        console.log(this.places)
+      },
+      
+      getName: function(id) {
+        return "http://tour-pedia.org/api/getPlaceDetails?id=" + id
+      },
+      
+      getPoints: function(f) {
+        return f.base;
+      },
+
+      _queryChanged: function() {
+        console.log("_queryChanged")
+        this.query ? this.queryChange(this.query) : this.queryDefault();
+      },
+
+      queryChange: function(value) {
+        console.log("_filtersChange")
+        var that = this;
+        var client = new $.es.Client({
+            hosts: this.host
+          });
+          client.search({
+          // undocumented params are appended to the query string
+          index: "frenchelections",
+          type: "tweet",
+          body: {
+            size: 10,
+            query: {
+              multi_match: {
+                fields: ["category","location"],
+                query: this.query
+
+              }
+            },
+            aggs: {
+              entity: {
+                terms: {
+                  field: "entity",
+                  order: {
+                    _count: "desc"
+                  }
+                }
+              },
+              user_location: {
+                terms: {
+                  field: "user_location",
+                  order: {
+                    _count: "desc"
+                  }
+                }
+              },
+              polarity: {
+                terms: {
+                  field: "polarity",
+                  order: {
+                    _count: "desc"
+                  }
+                }
+              }
+            }     
+          }
+          }).then(function (resp) {;
+            that.data = resp;
+            
+        });
+        
+      },
+     
+      queryDefault: function() {
+        var that = this;
+        var client = new $.es.Client({
+          hosts: this.host
+        });
+        client.search({
+          // undocumented params are appended to the query string
+          index: "frenchelections",
+          type: "tweet",
+          body: {
+            size: 1000,
+            query: {
+              match_all: {}
+            },
+            aggs: {
+              entity: {
+                terms: {
+                  field: "entity",
+                  order: {
+                    _count: "desc"
+                  }
+                }
+              },
+              user_location: {
+                terms: {
+                  field: "user_location",
+                  order: {
+                    _count: "desc"
+                  }
+                }
+              },
+              polarity: {
+                terms: {
+                  field: "polarity",
+                  order: {
+                    _count: "desc"
+                  }
+                }
+              }
+            }      
+          }
+        }).then(function (resp) {
+          //console.log(that.ids)
+          that.data = resp;
+          //console.log(that.data)
+        });
+      },
+
+      _filtersChange: function() {
+        console.log("_filtersChangedash")
+        var that = this;
+        if(filtered){
+          var client = new $.es.Client({
+            hosts: this.host
+          });
+          client.search({
+          // undocumented params are appended to the query string
+          index: "frenchelections",
+          type: "tweet",
+          body: {
+            size: 10,
+            query: {
+              bool: {
+                must: this.filters,
+              }
+            },
+            aggs: {
+              entity: {
+                terms: {
+                  field: "entity",
+                  order: {
+                    _count: "desc"
+                  }
+                }
+              },
+              user_location: {
+                terms: {
+                  field: "user_location",
+                  order: {
+                    _count: "desc"
+                  }
+                }
+              },
+              polarity: {
+                terms: {
+                  field: "polarity",
+                  order: {
+                    _count: "desc"
+                  }
+                }
+              }
+            }       
+          }
+          }).then(function (resp) {
+
+            that.data = resp;
+            //console.log(that.data)
+            
+            });
+        }
+      }
+    });
+  </script>
+
+</dom-module>
