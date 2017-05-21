@@ -1,0 +1,19 @@
+{
+  "name": "yasgui",
+  "authors": [
+    "gsi-upm"
+  ],
+  "description": "Polymer SPARQL query editor",
+  "main": "yasgui.html",
+  "keywords": [
+    "SPAQRL",
+    "webcomponents",
+    "polymer"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#^1.1.0",
+    "paper-dropdown-menu": "PolymerElements/paper-dropdown-menu#^1.0.0"
+  },
+  "license": "MIT",
+  "homepage": "https://lab.cluster.gsi.dit.upm.es/sefarad/yasgui"
+}
