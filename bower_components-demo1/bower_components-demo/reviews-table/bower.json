@@ -1,0 +1,23 @@
+{
+  "name": "reviews-table",
+  "authors": [
+    "gsi-upm"
+  ],
+  "version":"1.0.1",
+  "description": "Web component to visualize reviews from Tourpedia",
+  "main": "reviews-table.html",
+  "keywords": [
+    "tourpedia",
+    "webcomponents",
+    "polymer",
+    "reviews"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#^1.1.0",
+    "paper-material": "PolymerElements/paper-material#^1.0.0",
+    "iron-pages": "PolymerElements/iron-pages#^1.0.0",
+    "paper-button": "PolymerElements/paper-button#^1.0.0"
+  },
+  "license": "MIT",
+  "homepage": "https://lab.cluster.gsi.dit.upm.es/sefarad/reviews-table"
+}
