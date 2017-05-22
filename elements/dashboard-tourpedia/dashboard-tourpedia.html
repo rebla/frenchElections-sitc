@@ -180,13 +180,18 @@
           index: "frenchelections",
           type: "tweet",
           body: {
-            size: 10,
+            size: 1000,
             query: {
-              multi_match: {
-                fields: ["category","location"],
-                query: this.query
-
-              }
+              bool: {
+                must:{
+                  multi_match: {
+                    fields: ["entity","user_location"],
+                    query: this.query
+                  }
+                },
+                filter: this.filters
+                
+             }
             },
             aggs: {
               entity: {
@@ -282,7 +287,7 @@
           index: "frenchelections",
           type: "tweet",
           body: {
-            size: 10,
+            size: 1000,
             query: {
               bool: {
                 must: this.filters,
